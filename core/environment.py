@@ -9,6 +9,8 @@ import cv2
 import time
 from scipy.misc import imresize
 
+import logging
+logger = logging.getLogger(__name__)
 
 def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.299, 0.587, 0.114])

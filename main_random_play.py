@@ -23,7 +23,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('-g', '--game',    type=str,   default='Breakout-v0')
-    parser.add_argument('--log-filename', type=str,   default='')
+    parser.add_argument('--log-filename',  type=str,   default='')
     args = parser.parse_args()
 
     if not args.log_filename:
