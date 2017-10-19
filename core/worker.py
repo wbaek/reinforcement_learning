@@ -157,7 +157,7 @@ class Worker(threading.Thread):
             
             if terminal:
                 state = self.env.get_initial_state()
-                logger.info('THREAD:%02d TIME:%08d REWARD:%04d, COST:%.4f'%(self.thread_id, T, episode_reward, total_cost/counter))
+                logger.info('THREAD:%02d TIME:%08d FRAMES:%04d REWARD:%04d COST:%.4f'%(self.thread_id, T, counter, episode_reward, total_cost/counter))
                 counter, total_cost, episode_reward = 0, 0, 0                
 
 
