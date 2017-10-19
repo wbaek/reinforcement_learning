@@ -1,0 +1,7 @@
+tensorflow
+numpy
+scipy
+
+gym[atari]
+opencv-python
+scikit-image
