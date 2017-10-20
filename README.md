@@ -20,7 +20,8 @@ brew install https://gist.githubusercontent.com/leesheppard/69a283ee4af484e20298
 * install ImageMagicl
 ```bash
 apt-get install cmake
-apt-get install libsm6 
+apt-get install libsm6
+apt-get install python-opengl
 apt-get install libmagickwand-dev
 ```
 

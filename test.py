@@ -20,14 +20,20 @@ def main(args):
     saver = tf.train.Saver()
     saver.restore(sess, args.checkpoint)
 
+    rewards = []
     state = env.get_initial_state()
+
     terminal = False
     while not terminal:
         policy, value = global_net.predict(sess, state)
         action_index = global_net.sampling(policy) 
  
         new_state, reward, terminal = env.step(action_index)
-        env.env.render()
+        rewards.append( reward )
+        if args.render:
+            env.env.render()
+
+    print('rewards:{}'.format( sum(rewards) ))
 
 if __name__ == '__main__':
     import sys
@@ -35,6 +41,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-g', '--game',    type=str,   default='Breakout-v0')
     parser.add_argument('--checkpoint',    type=str,   required=True, help='./checkpoints/recent.ckpt')
+    parser.add_argument('--render',        action='store_true')
     parser.add_argument('--log-filename',  type=str,   default='')
     args = parser.parse_args()
 
