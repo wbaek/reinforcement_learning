@@ -1,6 +1,7 @@
 import logging
 import random
 import gym
+import numpy as np
 import tensorflow as tf
 
 from core.environment import Env
@@ -26,9 +27,10 @@ def main(args):
     terminal = False
     while not terminal:
         policy, value = global_net.predict(sess, state)
-        action_index = global_net.sampling(policy) 
+        #action_index = global_net.sampling(policy)
+        action_index = np.argmax(policy)
  
-        new_state, reward, terminal = env.step(action_index)
+        state, reward, terminal = env.step(action_index)
         rewards.append( reward )
         if args.render:
             env.env.render()
