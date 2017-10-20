@@ -55,8 +55,7 @@ class Network(object):
             value_loss = tf.nn.l2_loss(self.targets - self.value)
             regularization_loss = tf.add_n(tf.losses.get_regularization_losses())
 
-            #self.loss = policy_loss + 0.5 * value_loss + regularization_loss
-            self.loss = value_loss
+            self.loss = policy_loss + 0.5 * value_loss + regularization_loss
             self.train_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
 
     def tie_global_net(self, global_net):
