@@ -27,8 +27,8 @@ def main(args):
     terminal = False
     while not terminal:
         policy, value = global_net.predict(sess, state)
-        #action_index = global_net.sampling(policy)
-        action_index = np.argmax(policy)
+        action_index = global_net.sampling(policy)
+        #action_index = np.argmax(policy)
  
         state, reward, terminal = env.step(action_index)
         rewards.append( reward )
