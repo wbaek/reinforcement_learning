@@ -10,15 +10,16 @@ from core.worker import Network, Worker
 
 def main(args):
     logging.info( args )
-    
+    device = 'gpu' if args.gpu else 'cpu'
+ 
     env = gym.make(args.game)
     env = Env(env, resized_width=84, resized_height=84, agent_history_length=4)
     num_actions = len(env.gym_actions)
 
-    global_net = Network(-1, num_actions)
+    global_net = Network(num_actions, 0, 'cpu')
     actor_networks = []
     for t in range(args.threads):
-        n = Network(t, num_actions)
+        n = Network(num_actions, t+1, device)
         n.tie_global_net(global_net)
         actor_networks.append(n)
 
@@ -46,6 +47,7 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--game',     type=str,   default='Breakout-v0')
     parser.add_argument('-t', '--threads',  type=int,   default=5)
     parser.add_argument('--checkpoint-dir', type=str,   default='./checkpoints/')
+    parser.add_argument('--gpu',            action="store_true")
     parser.add_argument('--log-filename',   type=str,   default='')
     args = parser.parse_args()
 

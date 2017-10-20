@@ -12,59 +12,63 @@ T = 200
 EPSILON = 1e-10
 
 class Network(object):
-    def __init__(self, thread_id, output_actions_size, learning_rate=0.0001, beta=0.01):
+    def __init__(self, output_actions_size, thread_id=0, device='cpu', learning_rate=0.0001, beta=0.01):
         self.width, self.height, self.depth = 84, 84, 4
         self.thread_id = thread_id
+        self.device_spec = tf.DeviceSpec(device_type=device, device_index=0 if device is 'cpu' else thread_id)
 
         self.scope = 'net_' + str(thread_id)
         self.learning_rate = learning_rate
         self.beta = beta
 
-        self.input_state = tf.placeholder("float", [None, self.height, self.width, self.depth])
         self.output_actions_size = output_actions_size
 
-        self.advantage = tf.placeholder("float", [None])
-        self.targets = tf.placeholder("float", [None])
-        self.actions = tf.placeholder("float", [None, self.output_actions_size])
+        with tf.device(self.device_spec), tf.variable_scope(self.scope) as scope:
+            self.input_state = tf.placeholder("float", [None, self.height, self.width, self.depth])
+            self.advantage = tf.placeholder("float", [None])
+            self.targets = tf.placeholder("float", [None])
+            self.actions = tf.placeholder("float", [None, self.output_actions_size])
 
         self._build_graph()
 
     def _build_graph(self):
-        with tf.variable_scope(self.scope) as scope:
-            #scope.reuse_variables()
-            with slim.arg_scope([slim.layers.fully_connected], weights_regularizer=slim.l2_regularizer(1e-5)):
+        with tf.device(self.device_spec), tf.variable_scope(self.scope) as scope:
+            with slim.arg_scope([slim.layers.conv2d], weights_regularizer=slim.l2_regularizer(1e-4), activation_fn=tf.nn.relu), \
+                 slim.arg_scope([slim.layers.fully_connected], weights_regularizer=slim.l2_regularizer(1e-5), activation_fn=tf.nn.relu): 
+
                 l = slim.layers.conv2d(self.input_state, 16, [8, 8], stride=4, padding="VALID", scope='conv0')
                 l = slim.layers.conv2d(l, 32, [4, 4], stride=2, padding="VALID", scope='conv1')
                 l = slim.layers.flatten(l)
-                l = slim.layers.fully_connected(l, 256, activation_fn=tf.nn.relu, scope='fc1')
+                l = slim.layers.fully_connected(l, 256, scope='fc1')
 
                 policy_logit = slim.layers.fully_connected(l, self.output_actions_size, activation_fn=None, scope='fc_policy')
                 value_logit = slim.layers.fully_connected(l, 1, activation_fn=None, scope='fc_value')
 
-        self.policy = tf.nn.softmax(policy_logit)
-        self.value = value_logit
+            self.policy = tf.nn.softmax(policy_logit)
+            self.value = value_logit
 
-        # advantage loss
-        log_pol = tf.log(self.policy + EPSILON)
-        entropy_logit = -tf.reduce_sum(tf.multiply(log_pol, self.policy), reduction_indices=1)
-        entropy_target = tf.reduce_sum(tf.multiply(log_pol, self.actions), reduction_indices=1)
-        policy_loss = -tf.reduce_sum(entropy_target * self.advantage + entropy_logit * self.beta)
-        
-        value_loss = tf.nn.l2_loss(self.targets - self.value)
+            # advantage loss
+            log_pol = tf.log(self.policy + EPSILON)
+            entropy_logit = -tf.reduce_sum(tf.multiply(log_pol, self.policy), reduction_indices=1)
+            entropy_target = tf.reduce_sum(tf.multiply(log_pol, self.actions), reduction_indices=1)
+            policy_loss = -tf.reduce_sum(entropy_target * self.advantage + entropy_logit * self.beta)
+            value_loss = tf.nn.l2_loss(self.targets - self.value)
+            regularization_loss = tf.add_n(tf.losses.get_regularization_losses())
 
-        self.loss = policy_loss + 0.5 * value_loss
-
-        self.train_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
+            #self.loss = policy_loss + 0.5 * value_loss + regularization_loss
+            self.loss = value_loss
+            self.train_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
 
     def tie_global_net(self, global_net):
-        self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
-        self.grads = tf.gradients(self.loss, self.train_vars)
+        with tf.device(self.device_spec), tf.variable_scope(self.scope) as scope:
+            self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
+            self.grads = tf.gradients(self.loss, self.train_vars, colocate_gradients_with_ops=False)
         
-        grads_and_vars = list(zip(self.grads, global_net.train_vars))
-        self.opt = tf.group(self.optimizer.apply_gradients(grads_and_vars), tf.shape(self.input_state)[0])
+            grads_and_vars = list(zip(self.grads, global_net.train_vars))
+            self.opt = tf.group(self.optimizer.apply_gradients(grads_and_vars), tf.shape(self.input_state)[0])
 
-        sync = [self.train_vars[j].assign(global_net.train_vars[j]) for j in range(len(self.train_vars))]
-        self.sync_op = tf.group(*sync)
+            sync = [self.train_vars[j].assign(global_net.train_vars[j]) for j in range(len(self.train_vars))]
+            self.sync_op = tf.group(*sync)
 
     def sync(self, session):
         session.run(self.sync_op)
