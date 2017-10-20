@@ -12,10 +12,10 @@ T = 200
 EPSILON = 1e-10
 
 class Network(object):
-    def __init__(self, output_actions_size, thread_id=0, device='cpu', learning_rate=0.0001, beta=0.01):
+    def __init__(self, output_actions_size, thread_id=0, device='cpu', device_index=0, learning_rate=0.0001, beta=0.01):
         self.width, self.height, self.depth = 84, 84, 4
         self.thread_id = thread_id
-        self.device_spec = tf.DeviceSpec(device_type=device, device_index=0 if device is 'cpu' else thread_id)
+        self.device_spec = tf.DeviceSpec(device_type=device, device_index=device_index)
 
         self.scope = 'net_' + str(thread_id)
         self.learning_rate = learning_rate
