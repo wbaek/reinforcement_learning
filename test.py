@@ -27,8 +27,7 @@ def main(args):
     terminal = False
     while not terminal:
         policy, value = global_net.predict(sess, state)
-        action_index = global_net.sampling(policy)
-        #action_index = np.argmax(policy)
+        action_index = np.argmax(policy) if args.best_policy else global_net.sampling(policy)
  
         state, reward, terminal = env.step(action_index)
         rewards.append( reward )
@@ -44,6 +43,7 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--game',    type=str,   default='Breakout-v0')
     parser.add_argument('--checkpoint',    type=str,   required=True, help='./checkpoints/recent.ckpt')
     parser.add_argument('--render',        action='store_true')
+    parser.add_argument('--best-policy',   action='store_true')
     parser.add_argument('--log-filename',  type=str,   default='')
     args = parser.parse_args()
 
